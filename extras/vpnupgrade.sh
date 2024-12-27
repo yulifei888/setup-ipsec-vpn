@@ -1,12 +1,12 @@
 #!/bin/sh
 #
 # Script to update Libreswan on Ubuntu, Debian, CentOS/RHEL, Rocky Linux,
-# AlmaLinux, Amazon Linux 2 and Alpine Linux
+# AlmaLinux, Oracle Linux, Amazon Linux 2 and Alpine Linux
 #
 # The latest version of this script is available at:
 # https://github.com/hwdsl2/setup-ipsec-vpn
 #
-# Copyright (C) 2021 Lin Song <linsongui@gmail.com>
+# Copyright (C) 2021-2024 Lin Song <linsongui@gmail.com>
 #
 # This work is licensed under the Creative Commons Attribution-ShareAlike 3.0
 # Unported License: http://creativecommons.org/licenses/by-sa/3.0/
@@ -14,8 +14,9 @@
 # Attribution required: please include my name in any derivative and let me
 # know how you have improved it!
 
-# Specify which Libreswan version to install. See: https://libreswan.org
-SWAN_VER=4.5
+# (Optional) Specify which Libreswan version to install. See: https://libreswan.org
+# If not specified, the latest supported version will be installed.
+SWAN_VER=
 
 ### DO NOT edit below this line ###
 
@@ -36,19 +37,31 @@ check_vz() {
 }
 
 check_os() {
-  os_type=centos
   rh_file="/etc/redhat-release"
-  if grep -qs "Red Hat" "$rh_file"; then
-    os_type=rhel
-  fi
-  if grep -qs "release 7" "$rh_file"; then
-    os_ver=7
-  elif grep -qs "release 8" "$rh_file"; then
-    os_ver=8
-    grep -qi stream "$rh_file" && os_ver=8s
+  if [ -f "$rh_file" ]; then
+    os_type=centos
+    if grep -q "Red Hat" "$rh_file"; then
+      os_type=rhel
+    fi
+    [ -f /etc/oracle-release ] && os_type=ol
     grep -qi rocky "$rh_file" && os_type=rocky
     grep -qi alma "$rh_file" && os_type=alma
-  elif grep -qs "Amazon Linux release 2" /etc/system-release; then
+    if grep -q "release 7" "$rh_file"; then
+      os_ver=7
+    elif grep -q "release 8" "$rh_file"; then
+      os_ver=8
+      grep -qi stream "$rh_file" && os_ver=8s
+    elif grep -q "release 9" "$rh_file"; then
+      os_ver=9
+      grep -qi stream "$rh_file" && os_ver=9s
+    else
+      exiterr "This script only supports CentOS/RHEL 7-9."
+    fi
+    if [ "$os_type" = "centos" ] \
+      && { [ "$os_ver" = 7 ] || [ "$os_ver" = 8 ] || [ "$os_ver" = 8s ]; }; then
+      exiterr "CentOS Linux $os_ver is EOL and not supported."
+    fi
+  elif grep -qs "Amazon Linux release 2 " /etc/system-release; then
     os_type=amzn
     os_ver=2
   else
@@ -58,7 +71,7 @@ check_os() {
       [Uu]buntu)
         os_type=ubuntu
         ;;
-      [Dd]ebian)
+      [Dd]ebian|[Kk]ali)
         os_type=debian
         ;;
       [Rr]aspbian)
@@ -70,62 +83,42 @@ check_os() {
       *)
 cat 1>&2 <<'EOF'
 Error: This script only supports one of the following OS:
-       Ubuntu, Debian, CentOS/RHEL 7/8, Rocky Linux, AlmaLinux,
-       Amazon Linux 2 or Alpine Linux
+       Ubuntu, Debian, CentOS/RHEL, Rocky Linux, AlmaLinux,
+       Oracle Linux, Amazon Linux 2 or Alpine Linux
 EOF
         exit 1
         ;;
     esac
     if [ "$os_type" = "alpine" ]; then
       os_ver=$(. /etc/os-release && printf '%s' "$VERSION_ID" | cut -d '.' -f 1,2)
-      if [ "$os_ver" != "3.14" ]; then
-        exiterr "This script only supports Alpine Linux 3.14."
+      if [ "$os_ver" != "3.19" ] && [ "$os_ver" != "3.20" ]; then
+        exiterr "This script only supports Alpine Linux 3.19/3.20."
       fi
     else
       os_ver=$(sed 's/\..*//' /etc/debian_version | tr -dc 'A-Za-z0-9')
-      if [ "$os_ver" = "8" ] || [ "$os_ver" = "jessiesid" ]; then
-        exiterr "Debian 8 or Ubuntu < 16.04 is not supported."
+      if [ "$os_ver" = 8 ] || [ "$os_ver" = 9 ] || [ "$os_ver" = "stretchsid" ] \
+        || [ "$os_ver" = "bustersid" ]; then
+cat 1>&2 <<EOF
+Error: This script requires Debian >= 10 or Ubuntu >= 20.04.
+       This version of Ubuntu/Debian is too old and not supported.
+EOF
+        exit 1
+      fi
+      if [ "$os_ver" = "trixiesid" ] && [ -f /etc/os-release ] \
+        && [ "$(. /etc/os-release && printf '%s' "$VERSION_ID")" = "24.10" ]; then
+cat 1>&2 <<EOF
+Error: This script does not support Ubuntu 24.10.
+       You may use e.g. Ubuntu 24.04 LTS instead.
+EOF
+        exit 1
       fi
     fi
   fi
 }
 
 check_libreswan() {
-  if [ "$os_type" != "alpine" ]; then
-    case $SWAN_VER in
-      3.32|4.[1-5])
-        true
-        ;;
-      *)
-cat 1>&2 <<EOF
-Error: Libreswan version '$SWAN_VER' is not supported.
-       This script can install one of these versions:
-       3.32, 4.1-4.4 or 4.5
-EOF
-        exit 1
-        ;;
-    esac
-  else
-    case $SWAN_VER in
-      4.5)
-        true
-        ;;
-      *)
-cat 1>&2 <<EOF
-Error: Libreswan version '$SWAN_VER' is not supported.
-       This script can install Libreswan 4.5.
-EOF
-        exit 1
-        ;;
-    esac
-  fi
-
-  if [ "$SWAN_VER" = "3.32" ] && [ "$os_ver" = "11" ]; then
-    exiterr "Libreswan 3.32 is not supported on Debian 11."
-  fi
-
   ipsec_ver=$(/usr/local/sbin/ipsec --version 2>/dev/null)
-  if ! printf '%s' "$ipsec_ver" | grep -q "Libreswan"; then
+  if ! printf '%s' "$ipsec_ver" | grep -qi 'libreswan'; then
 cat 1>&2 <<'EOF'
 Error: This script requires Libreswan already installed.
        See: https://github.com/hwdsl2/setup-ipsec-vpn
@@ -140,16 +133,16 @@ install_pkgs() {
       export DEBIAN_FRONTEND=noninteractive
       (
         set -x
-        apt-get -yqq update
+        apt-get -yqq update || apt-get -yqq update
       ) || exiterr "'apt-get update' failed."
       (
         set -x
-        apt-get -yqq install wget >/dev/null
+        apt-get -yqq install wget >/dev/null || apt-get -yqq install wget >/dev/null
       ) || exiterr "'apt-get install wget' failed."
     elif [ "$os_type" != "alpine" ]; then
       (
         set -x
-        yum -y -q install wget >/dev/null
+        yum -y -q install wget >/dev/null || yum -y -q install wget >/dev/null
       ) || exiterr "'yum install wget' failed."
     fi
   fi
@@ -162,23 +155,27 @@ install_pkgs() {
 }
 
 get_setup_url() {
-  base_url="https://github.com/hwdsl2/setup-ipsec-vpn/raw/master/extras"
+  base_url1="https://raw.githubusercontent.com/hwdsl2/setup-ipsec-vpn/master/extras"
+  base_url2="https://gitlab.com/hwdsl2/setup-ipsec-vpn/-/raw/master/extras"
   sh_file="vpnupgrade_ubuntu.sh"
-  if [ "$os_type" = "centos" ] || [ "$os_type" = "rhel" ] || [ "$os_type" = "rocky" ] || [ "$os_type" = "alma" ]; then
+  if [ "$os_type" = "centos" ] || [ "$os_type" = "rhel" ] || [ "$os_type" = "rocky" ] \
+    || [ "$os_type" = "alma" ] || [ "$os_type" = "ol" ]; then
     sh_file="vpnupgrade_centos.sh"
   elif [ "$os_type" = "amzn" ]; then
     sh_file="vpnupgrade_amzn.sh"
   elif [ "$os_type" = "alpine" ]; then
     sh_file="vpnupgrade_alpine.sh"
   fi
-  setup_url="$base_url/$sh_file"
+  setup_url1="$base_url1/$sh_file"
+  setup_url2="$base_url2/$sh_file"
 }
 
 run_setup() {
   status=0
   if tmpdir=$(mktemp --tmpdir -d vpn.XXXXX 2>/dev/null); then
-    if ( set -x; wget -t 3 -T 30 -q -O "$tmpdir/vpnup.sh" "$setup_url" \
-      || curl -fsL "$setup_url" -o "$tmpdir/vpnup.sh" 2>/dev/null ); then
+    if ( set -x; wget -t 3 -T 30 -q -O "$tmpdir/vpnup.sh" "$setup_url1" \
+      || wget -t 3 -T 30 -q -O "$tmpdir/vpnup.sh" "$setup_url2" \
+      || curl -m 30 -fsL "$setup_url1" -o "$tmpdir/vpnup.sh" 2>/dev/null ); then
       VPN_UPDATE_SWAN_VER="$SWAN_VER" /bin/bash "$tmpdir/vpnup.sh" || status=1
     else
       status=1

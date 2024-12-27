@@ -1,8 +1,6 @@
+[English](clients-xauth.md) | [中文](clients-xauth-zh.md)
+
 # Configure IPsec/XAuth VPN Clients
-
-*Read this in other languages: [English](clients-xauth.md), [简体中文](clients-xauth-zh.md).*
-
-**Note:** You may also connect using [IKEv2](ikev2-howto.md) (recommended) or [IPsec/L2TP](clients.md) mode.
 
 After [setting up your own VPN server](https://github.com/hwdsl2/setup-ipsec-vpn), follow these steps to configure your devices. IPsec/XAuth ("Cisco IPsec") is natively supported by Android, iOS and OS X. There is no additional software to install. Windows users can use the free [Shrew Soft client](https://www.shrew.net/download/vpn). In case you are unable to connect, first check to make sure the VPN credentials were entered correctly.
 
@@ -11,14 +9,14 @@ IPsec/XAuth mode is also called "Cisco IPsec". This mode is generally **faster t
 ---
 * Platforms
   * [Windows](#windows)
-  * [OS X (macOS)](#os-x)
+  * [OS X (macOS)](#os-x-macos)
   * [Android](#android)
   * [iOS (iPhone/iPad)](#ios)
   * [Linux](#linux)
 
 ## Windows
 
-**Note:** You may also connect using [IKEv2](ikev2-howto.md) (recommended) or [IPsec/L2TP](clients.md) mode. No additional software is required.
+> You may also connect using [IKEv2](ikev2-howto.md) (recommended) or [IPsec/L2TP](clients.md) mode. No additional software is required.
 
 1. Download and install the free [Shrew Soft VPN client](https://www.shrew.net/download/vpn). When prompted during install, select **Standard Edition**.   
    **Note:** This VPN client does NOT support Windows 10/11.
@@ -38,11 +36,34 @@ IPsec/XAuth mode is also called "Cisco IPsec". This mode is generally **faster t
 
 Once connected, you will see **tunnel enabled** in the VPN Connect status window. Click the "Network" tab, and confirm that **Established - 1** is displayed under "Security Associations". You can verify that your traffic is being routed properly by [looking up your IP address on Google](https://www.google.com/search?q=my+ip). It should say "Your public IP address is `Your VPN Server IP`".
 
-If you get an error when trying to connect, see [Troubleshooting](clients.md#troubleshooting).
+If you get an error when trying to connect, see [Troubleshooting](clients.md#ikev1-troubleshooting).
 
-## OS X
+## OS X (macOS)
 
-**Note:** You may also connect using [IKEv2](ikev2-howto.md) (recommended) or [IPsec/L2TP](clients.md) mode.
+### macOS 13 (Ventura) and newer
+
+> You may also connect using [IKEv2](ikev2-howto.md) (recommended) or [IPsec/L2TP](clients.md) mode.
+
+1. Open **System Settings** and go to the **Network** section.
+1. Click **VPN** on the right hand side of the window.
+1. Click the **Add VPN Configuration** drop-down menu and select **Cisco IPSec**.
+1. In the window that opens, enter anything you like for the **Display name**.
+1. Enter `Your VPN Server IP` for the **Server address**.
+1. Enter `Your VPN Username` for the **Account name**.
+1. Enter `Your VPN Password` for the **Password**.
+1. Select **Shared secret** from the **Type** drop-down menu.
+1. Enter `Your VPN IPsec PSK` for the **Shared secret**.
+1. Leave the **Group name** field blank.
+1. Click **Create** to save the VPN configuration.
+1. To show VPN status in your menu bar and for shortcut access, go to the **Control Center** section of **System Settings**. Scroll to the bottom and select `Show in Menu Bar` from the **VPN** drop-down menu.
+
+To connect to the VPN: Use the menu bar icon, or go to the **VPN** section of **System Settings** and toggle the switch for your VPN configuration. You can verify that your traffic is being routed properly by [looking up your IP address on Google](https://www.google.com/search?q=my+ip). It should say "Your public IP address is `Your VPN Server IP`".
+
+If you get an error when trying to connect, see [Troubleshooting](clients.md#ikev1-troubleshooting).
+
+### macOS 12 (Monterey) and older
+
+> You may also connect using [IKEv2](ikev2-howto.md) (recommended) or [IPsec/L2TP](clients.md) mode.
 
 1. Open System Preferences and go to the Network section.
 1. Click the **+** button in the lower-left corner of the window.
@@ -62,11 +83,17 @@ If you get an error when trying to connect, see [Troubleshooting](clients.md#tro
 
 To connect to the VPN: Use the menu bar icon, or go to the Network section of System Preferences, select the VPN and choose **Connect**. You can verify that your traffic is being routed properly by [looking up your IP address on Google](https://www.google.com/search?q=my+ip). It should say "Your public IP address is `Your VPN Server IP`".
 
-If you get an error when trying to connect, see [Troubleshooting](clients.md#troubleshooting).
+If you get an error when trying to connect, see [Troubleshooting](clients.md#ikev1-troubleshooting).
 
 ## Android
 
-**Note:** You may also connect using [IKEv2](ikev2-howto.md) (recommended) or [IPsec/L2TP](clients.md) mode. Android 12 only supports [IKEv2](ikev2-howto.md) mode.
+**Important:** Android users should instead connect using [IKEv2 mode](ikev2-howto.md) (recommended), which is more secure. Android 12+ only supports IKEv2 mode. The native VPN client in Android uses the less secure `modp1024` (DH group 2) for the IPsec/L2TP and IPsec/XAuth ("Cisco IPsec") modes.
+
+If you still want to connect using IPsec/XAuth mode, you must first edit `/etc/ipsec.conf` on the VPN server. Find the line `ike=...` and append `,aes256-sha2;modp1024,aes128-sha1;modp1024` at the end. Save the file and run `service ipsec restart`.
+
+Docker users: Add `VPN_ENABLE_MODP1024=yes` to [your env file](https://github.com/hwdsl2/docker-ipsec-vpn-server#how-to-use-this-image), then re-create the Docker container.
+
+After that, follow the steps below on your Android device:
 
 1. Launch the **Settings** application.
 1. Tap "Network & internet". Or, if using Android 7 or earlier, tap **More...** in the **Wireless & networks** section.
@@ -86,11 +113,11 @@ If you get an error when trying to connect, see [Troubleshooting](clients.md#tro
 
 Once connected, you will see a VPN icon in the notification bar. You can verify that your traffic is being routed properly by [looking up your IP address on Google](https://www.google.com/search?q=my+ip). It should say "Your public IP address is `Your VPN Server IP`".
 
-If you get an error when trying to connect, see [Troubleshooting](clients.md#troubleshooting).
+If you get an error when trying to connect, see [Troubleshooting](clients.md#ikev1-troubleshooting).
 
 ## iOS
 
-**Note:** You may also connect using [IKEv2](ikev2-howto.md) (recommended) or [IPsec/L2TP](clients.md) mode.
+> You may also connect using [IKEv2](ikev2-howto.md) (recommended) or [IPsec/L2TP](clients.md) mode.
 
 1. Go to Settings -> General -> VPN.
 1. Tap **Add VPN Configuration...**.
@@ -106,9 +133,11 @@ If you get an error when trying to connect, see [Troubleshooting](clients.md#tro
 
 Once connected, you will see a VPN icon in the status bar. You can verify that your traffic is being routed properly by [looking up your IP address on Google](https://www.google.com/search?q=my+ip). It should say "Your public IP address is `Your VPN Server IP`".
 
-If you get an error when trying to connect, see [Troubleshooting](clients.md#troubleshooting).
+If you get an error when trying to connect, see [Troubleshooting](clients.md#ikev1-troubleshooting).
 
 ## Linux
+
+> You may also connect using [IKEv2](ikev2-howto.md) mode (recommended).
 
 ### Fedora and CentOS
 
@@ -135,16 +164,12 @@ Once connected, you can verify that your traffic is being routed properly by [lo
 
 Other Linux users can connect using [IPsec/L2TP](clients.md#linux) mode.
 
-## Credits
-
-This document was adapted from the [Streisand](https://github.com/StreisandEffect/streisand) project, maintained by Joshua Lund and contributors.
-
 ## License
 
 Note: This license applies to this document only.
 
-Copyright (C) 2016-2021 [Lin Song](https://github.com/hwdsl2) [![View my profile on LinkedIn](https://static.licdn.com/scds/common/u/img/webpromo/btn_viewmy_160x25.png)](https://www.linkedin.com/in/linsongui)   
-Based on [the work of Joshua Lund](https://github.com/StreisandEffect/streisand/blob/6aa6b6b2735dd829ca8c417d72eb2768a89b6639/playbooks/roles/l2tp-ipsec/templates/instructions.md.j2) (Copyright 2014-2016)
+Copyright (C) 2016-2024 [Lin Song](https://github.com/hwdsl2) [![View my profile on LinkedIn](https://static.licdn.com/scds/common/u/img/webpromo/btn_viewmy_160x25.png)](https://www.linkedin.com/in/linsongui)   
+Inspired by [the work of Joshua Lund](https://github.com/StreisandEffect/streisand/blob/6aa6b6b2735dd829ca8c417d72eb2768a89b6639/playbooks/roles/l2tp-ipsec/templates/instructions.md.j2)
 
 This program is free software: you can redistribute it and/or modify it under the terms of the [GNU General Public License](https://www.gnu.org/licenses/gpl.html) as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 

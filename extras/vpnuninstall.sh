@@ -1,14 +1,13 @@
 #!/bin/bash
 #
-# Script to uninstall IPsec VPN on Ubuntu, Debian, CentOS/RHEL,
-# Rocky Linux, AlmaLinux, Amazon Linux 2 and Alpine Linux
+# Script to uninstall IPsec VPN
 #
 # DO NOT RUN THIS SCRIPT ON YOUR PC OR MAC!
 #
 # The latest version of this script is available at:
 # https://github.com/hwdsl2/setup-ipsec-vpn
 #
-# Copyright (C) 2021 Lin Song <linsongui@gmail.com>
+# Copyright (C) 2021-2024 Lin Song <linsongui@gmail.com>
 #
 # This work is licensed under the Creative Commons Attribution-ShareAlike 3.0
 # Unported License: http://creativecommons.org/licenses/by-sa/3.0/
@@ -23,6 +22,11 @@ exiterr()  { echo "Error: $1" >&2; exit 1; }
 conf_bk() { /bin/cp -f "$1" "$1.old-$SYS_DT" 2>/dev/null; }
 bigecho() { echo "## $1"; }
 
+check_cidr() {
+  CIDR_REGEX='^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(/(3[0-2]|[1-2][0-9]|[0-9]))$'
+  printf '%s' "$1" | tr -d '\n' | grep -Eq "$CIDR_REGEX"
+}
+
 check_root() {
   if [ "$(id -u)" != 0 ]; then
     exiterr "Script must be run as root. Try 'sudo bash $0'"
@@ -30,15 +34,19 @@ check_root() {
 }
 
 check_os() {
-  os_type=centos
   rh_file="/etc/redhat-release"
-  if grep -qs "Red Hat" "$rh_file"; then
-    os_type=rhel
-  fi
-  if grep -qs "release 7" "$rh_file" || grep -qs "release 8" "$rh_file"; then
+  if [ -f "$rh_file" ]; then
+    os_type=centos
+    if grep -q "Red Hat" "$rh_file"; then
+      os_type=rhel
+    fi
+    [ -f /etc/oracle-release ] && os_type=ol
     grep -qi rocky "$rh_file" && os_type=rocky
     grep -qi alma "$rh_file" && os_type=alma
-  elif grep -qs "Amazon Linux release 2" /etc/system-release; then
+    if ! grep -q -E "release (7|8|9)" "$rh_file"; then
+      exiterr "This script only supports CentOS/RHEL 7-9."
+    fi
+  elif grep -qs "Amazon Linux release 2 " /etc/system-release; then
     os_type=amzn
   else
     os_type=$(lsb_release -si 2>/dev/null)
@@ -47,7 +55,7 @@ check_os() {
       [Uu]buntu)
         os_type=ubuntu
         ;;
-      [Dd]ebian)
+      [Dd]ebian|[Kk]ali)
         os_type=debian
         ;;
       [Rr]aspbian)
@@ -59,8 +67,8 @@ check_os() {
       *)
 cat 1>&2 <<'EOF'
 Error: This script only supports one of the following OS:
-       Ubuntu, Debian, CentOS/RHEL 7/8, Rocky Linux, AlmaLinux,
-       Amazon Linux 2 or Alpine Linux
+       Ubuntu, Debian, CentOS/RHEL, Rocky Linux, AlmaLinux,
+       Oracle Linux, Amazon Linux 2 or Alpine Linux
 EOF
         exit 1
         ;;
@@ -71,7 +79,7 @@ EOF
 check_libreswan() {
   ipsec_ver=$(ipsec --version 2>/dev/null)
   if ! grep -qs "hwdsl2 VPN script" /etc/sysctl.conf \
-    || ! printf '%s' "$ipsec_ver" | grep -q "Libreswan"; then
+    || ! printf '%s' "$ipsec_ver" | grep -qi 'libreswan'; then
     exiterr "Cannot remove IPsec VPN because it has not been set up on this server."
   fi
 }
@@ -91,7 +99,7 @@ check_iface() {
     else
       check_wl=1
     fi
-    if [ "$check_wl" = "1" ]; then
+    if [ "$check_wl" = 1 ]; then
       case $def_iface in
         wl*)
           exiterr "Wireless interface '$def_iface' detected. DO NOT run this script on your PC or Mac!"
@@ -163,24 +171,35 @@ remove_xl2tpd() {
   fi
 }
 
-remove_ikev2_script() {
-  bigecho "Removing IKEv2 script..."
-  if [ "$(readlink -f /usr/bin/ikev2.sh 2>/dev/null)" = "/opt/src/ikev2.sh" ]; then
-    /bin/rm -f /usr/bin/ikev2.sh
-  fi
-  /bin/rm -f /opt/src/ikev2.sh
+remove_helper_scripts() {
+  bigecho "Removing helper scripts..."
+  for sc in ikev2.sh addvpnuser.sh delvpnuser.sh; do
+    if [ "$(readlink -f "/usr/bin/$sc" 2>/dev/null)" = "/opt/src/$sc" ]; then
+      /bin/rm -f "/usr/bin/$sc" "/opt/src/$sc"
+    fi
+  done
 }
 
 update_sysctl() {
   if grep -qs "hwdsl2 VPN script" /etc/sysctl.conf; then
     bigecho "Updating sysctl settings..."
     conf_bk "/etc/sysctl.conf"
-    if [ "$os_type" = "alpine" ]; then
-      sed -i '/# Added by hwdsl2 VPN script/,+17d' /etc/sysctl.conf
-    else
-      sed --follow-symlinks -i '/# Added by hwdsl2 VPN script/,+17d' /etc/sysctl.conf
+    count=17
+    line1=$(grep -A 18 "hwdsl2 VPN script" /etc/sysctl.conf | tail -n 1)
+    line2=$(grep -A 19 "hwdsl2 VPN script" /etc/sysctl.conf | tail -n 1)
+    if [ "$line1" = "net.core.default_qdisc = fq" ] \
+      && [ "$line2" = "net.ipv4.tcp_congestion_control = bbr" ]; then
+        count=19
     fi
-    echo 0 > /proc/sys/net/ipv4/ip_forward
+    if [ "$os_type" = "alpine" ]; then
+      sed -i "/# Added by hwdsl2 VPN script/,+${count}d" /etc/sysctl.conf
+    else
+      sed --follow-symlinks -i "/# Added by hwdsl2 VPN script/,+${count}d" /etc/sysctl.conf
+    fi
+    if [ ! -f /usr/bin/wg-quick ] && [ ! -f /usr/sbin/openvpn ]; then
+      echo 0 > /proc/sys/net/ipv4/ip_forward
+    fi
+    echo 1 > /proc/sys/net/ipv4/conf/all/rp_filter
   fi
 }
 
@@ -192,6 +211,21 @@ update_rclocal() {
       sed -i '/# Added by hwdsl2 VPN script/,+4d' /etc/rc.local
     else
       sed --follow-symlinks -i '/# Added by hwdsl2 VPN script/,+4d' /etc/rc.local
+    fi
+  fi
+}
+
+get_vpn_subnets() {
+  L2TP_NET=192.168.42.0/24
+  XAUTH_NET=192.168.43.0/24
+  if [ -s /etc/ipsec.conf ]; then
+    if ! grep -q "$L2TP_NET" /etc/ipsec.conf \
+      || ! grep -q "$XAUTH_NET" /etc/ipsec.conf; then
+      vipr=$(grep "virtual-private=" /etc/ipsec.conf)
+      l2tpnet=$(printf '%s' "$vipr" | cut -f2 -d '!' | sed 's/,%v4://')
+      xauthnet=$(printf '%s' "$vipr" | cut -f3 -d '!')
+      check_cidr "$l2tpnet" && L2TP_NET="$l2tpnet"
+      check_cidr "$xauthnet" && XAUTH_NET="$xauthnet"
     fi
   fi
 }
@@ -213,14 +247,14 @@ update_iptables_rules() {
   if grep -qs "hwdsl2 VPN script" "$IPT_FILE"; then
     ipt_flag=1
   fi
-
   ipi='iptables -D INPUT'
   ipf='iptables -D FORWARD'
   ipp='iptables -t nat -D POSTROUTING'
   res='RELATED,ESTABLISHED'
-  if [ "$ipt_flag" = "1" ]; then
-    if [ "$use_nft" = "0" ]; then
+  if [ "$ipt_flag" = 1 ]; then
+    if [ "$use_nft" = 0 ]; then
       bigecho "Updating IPTables rules..."
+      get_vpn_subnets
       iptables-save > "$IPT_FILE.old-$SYS_DT"
       $ipi -p udp --dport 1701 -m policy --dir in --pol none -j DROP
       $ipi -m conntrack --ctstate INVALID -j DROP
@@ -232,14 +266,13 @@ update_iptables_rules() {
       $ipf -i "$NET_IFACE" -o ppp+ -m conntrack --ctstate "$res" -j ACCEPT
       $ipf -i ppp+ -o "$NET_IFACE" -j ACCEPT
       $ipf -i ppp+ -o ppp+ -j ACCEPT
-      $ipf -i "$NET_IFACE" -d 192.168.43.0/24 -m conntrack --ctstate "$res" -j ACCEPT
-      $ipf -s 192.168.43.0/24 -o "$NET_IFACE" -j ACCEPT
-      $ipf -s 192.168.43.0/24 -o ppp+ -j ACCEPT
+      $ipf -i "$NET_IFACE" -d "$XAUTH_NET" -m conntrack --ctstate "$res" -j ACCEPT
+      $ipf -s "$XAUTH_NET" -o "$NET_IFACE" -j ACCEPT
+      $ipf -s "$XAUTH_NET" -o ppp+ -j ACCEPT
       iptables -D FORWARD -j DROP
-      $ipp -s 192.168.43.0/24 -o "$NET_IFACE" -m policy --dir out --pol none -j MASQUERADE
-      $ipp -s 192.168.42.0/24 -o "$NET_IFACE" -j MASQUERADE
+      $ipp -s "$XAUTH_NET" -o "$NET_IFACE" -m policy --dir out --pol none -j MASQUERADE
+      $ipp -s "$L2TP_NET" -o "$NET_IFACE" -j MASQUERADE
       iptables-save > "$IPT_FILE"
-
       if [ "$os_type" = "ubuntu" ] || [ "$os_type" = "debian" ] || [ "$os_type" = "raspbian" ]; then
         if [ -f "$IPT_FILE2" ]; then
           conf_bk "$IPT_FILE2"
@@ -249,8 +282,12 @@ update_iptables_rules() {
     else
       nft_bk=$(find /etc/sysconfig -maxdepth 1 -name 'nftables.conf.old-*-*-*-*_*_*' -print0 \
         | xargs -r -0 ls -1 -t | head -1)
+      diff_count=24
+      if grep -qs "release 9" /etc/redhat-release; then
+        diff_count=38
+      fi
       if [ -f "$nft_bk" ] \
-        && [ "$(diff -y --suppress-common-lines "$IPT_FILE" "$nft_bk" | wc -l)" = "25" ]; then
+        && [ "$(diff -y --suppress-common-lines "$IPT_FILE" "$nft_bk" | wc -l)" = "$diff_count" ]; then
         bigecho "Restoring nftables rules..."
         conf_bk "$IPT_FILE"
         /bin/cp -f "$nft_bk" "$IPT_FILE" && /bin/rm -f "$nft_bk"
@@ -270,6 +307,17 @@ EOF
   fi
 }
 
+update_crontabs() {
+  if [ "$os_type" = "alpine" ]; then
+    cron_cmd="rc-service -c ipsec zap start"
+    if grep -qs "$cron_cmd" /etc/crontabs/root; then
+      bigecho "Updating crontabs..."
+      sed -i "/$cron_cmd/d" /etc/crontabs/root
+      touch /etc/crontabs/cron.update
+    fi
+  fi
+}
+
 remove_config_files() {
   bigecho "Removing VPN configuration..."
   /bin/rm -f /etc/ipsec.conf* /etc/ipsec.secrets* /etc/ppp/chap-secrets* /etc/ppp/options.xl2tpd* \
@@ -281,16 +329,17 @@ remove_vpn() {
   stop_services
   remove_ipsec
   remove_xl2tpd
-  remove_ikev2_script
+  remove_helper_scripts
   update_sysctl
   update_rclocal
   update_iptables_rules
+  update_crontabs
   remove_config_files
 }
 
 print_vpn_removed() {
   echo
-  echo "IPsec VPN removed! Please reboot your server."
+  echo "IPsec VPN removed!"
 }
 
 vpnuninstall() {
