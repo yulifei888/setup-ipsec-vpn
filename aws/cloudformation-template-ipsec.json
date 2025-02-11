@@ -1,276 +1,135 @@
 {
+    "Metadata": {
+        "README": {
+            "Fn::Join": [
+                "\n",
+                [
+                    "",
+                    "AWS Cloudformation Template for deploying IPSec VPN Servers on AWS EC2,",
+                    "based on the work of Lin Song <linsongui@gmail.com> : https://github.com/hwdsl2/setup-ipsec-vpn",
+                    "The latest version of this template can be found at : https://github.com/hwdsl2/setup-ipsec-vpn/aws",
+                    "",
+                    "Copyright (C) 2020-2024 Scott X. L. <wtanglef@pm.me>",
+                    "",
+                    "This work is licensed under the Creative Commons Attribution-ShareAlike 3.0",
+                    "Unported License: http://creativecommons.org/licenses/by-sa/3.0/",
+                    "",
+                    "Attribution required: Please include my name in any derivative and let me",
+                    "know how you have improved it!",
+                    ""
+                ]
+            ]
+        }
+    },
     "AWSTemplateFormatVersion": "2010-09-09",
     "Mappings": {
         "OS": {
-            "Ubuntu1804": {
-                "HelperInstallationCommands": "export DEBIAN_FRONTEND=noninteractive\napt-get -yq update\napt-get -yq install python3-pip\npython3 -m pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz\n"
-            },
             "Ubuntu2004": {
-                "HelperInstallationCommands": "export DEBIAN_FRONTEND=noninteractive\napt-get -yq update\napt-get -yq install python3-pip\npython3 -m pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz\n"
+                "HelperInstallationCommands": "export DEBIAN_FRONTEND=noninteractive\napt-get -yq update\napt-get -yq install python3-pip zip awscli\npython3 -m pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz"
             },
-            "Debian9": {
-                "HelperInstallationCommands": "export DEBIAN_FRONTEND=noninteractive\napt-get -yq update\napt-get -yq install python3-pip\npython3 -m pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz\n"
+            "Ubuntu2204": {
+                "HelperInstallationCommands": "export DEBIAN_FRONTEND=noninteractive\napt-get -yq update\napt-get -yq install python3-pip zip awscli\npython3 -m pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz"
             },
-            "CentOS7": {
-                "HelperInstallationCommands": "yum -y install python3 wget\npython3 -m pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz\n"
+            "Ubuntu2404": {
+                "HelperInstallationCommands": "export DEBIAN_FRONTEND=noninteractive\nrm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED\nadd-apt-repository ppa:deadsnakes/ppa\napt-get -yq update\napt-get -yq install python3.11 python3-pip zip\npython3 -m pip install awscli\npython3.11 -m pip install -U pip setuptools\npython3.11 -m pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz"
             },
-            "CentOS8": {
-                "HelperInstallationCommands": "yum -y install python3 wget\npython3 -m pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz\n"
+            "Debian11": {
+                "HelperInstallationCommands": "export DEBIAN_FRONTEND=noninteractive\napt-get -yq update\napt-get -yq install python3-pip zip awscli\npython3 -m pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz"
+            },
+            "Debian12": {
+                "HelperInstallationCommands": "export DEBIAN_FRONTEND=noninteractive\nrm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED\napt-get -yq update\napt-get -yq install python3-pip zip awscli\npython3 -m pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz"
             },
             "AmazonLinux2": {
-                "HelperInstallationCommands": "export PATH=\"$PATH:/opt/aws/bin\"\n"
-            }
-        }
-    },
-    "Metadata": {
-        "AWS::CloudFormation::Designer": {
-            "0a162613-8f2e-4864-be99-75d946934a4a": {
-                "size": {
-                    "width": 350,
-                    "height": 440
-                },
-                "position": {
-                    "x": 290,
-                    "y": 70
-                },
-                "z": 1,
-                "embeds": [
-                    "5198eb6d-da4f-43e2-8a4b-b9bff02b26a2"
-                ]
-            },
-            "5198eb6d-da4f-43e2-8a4b-b9bff02b26a2": {
-                "size": {
-                    "width": 290,
-                    "height": 360
-                },
-                "position": {
-                    "x": 310,
-                    "y": 110
-                },
-                "z": 2,
-                "parent": "0a162613-8f2e-4864-be99-75d946934a4a",
-                "embeds": [
-                    "9d4cbbc2-f521-436d-bb4a-85b82cf22a2a",
-                    "464ea4ae-199c-4917-9404-aed674a8615a",
-                    "ec256f27-66c3-423c-9d98-b9f0f634e7b8",
-                    "4731d93c-f3fc-420a-b535-f0b99840f356",
-                    "40c2d4e7-f01a-45b2-8878-a06680aa2216"
-                ],
-                "dependson": [
-                    "0a162613-8f2e-4864-be99-75d946934a4a",
-                    "464ea4ae-199c-4917-9404-aed674a8615a"
-                ]
-            },
-            "4731d93c-f3fc-420a-b535-f0b99840f356": {
-                "size": {
-                    "width": 230,
-                    "height": 130
-                },
-                "position": {
-                    "x": 350,
-                    "y": 320
-                },
-                "z": 3,
-                "parent": "5198eb6d-da4f-43e2-8a4b-b9bff02b26a2",
-                "embeds": [
-                    "5262ea47-2337-4be8-a4d1-1f0af38a1731"
-                ],
-                "iscontainedinside": [
-                    "0a162613-8f2e-4864-be99-75d946934a4a"
-                ],
-                "dependson": [
-                    "5198eb6d-da4f-43e2-8a4b-b9bff02b26a2"
-                ]
-            },
-            "5262ea47-2337-4be8-a4d1-1f0af38a1731": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 440,
-                    "y": 350
-                },
-                "z": 4,
-                "parent": "4731d93c-f3fc-420a-b535-f0b99840f356",
-                "embeds": [],
-                "isassociatedwith": [
-                    "db7c3441-9f9a-4677-a14d-bccfc06714d1"
-                ],
-                "dependson": [
-                    "4731d93c-f3fc-420a-b535-f0b99840f356",
-                    "9d3d19ab-d561-4f59-89de-73498eeeebda",
-                    "464ea4ae-199c-4917-9404-aed674a8615a"
-                ]
-            },
-            "464ea4ae-199c-4917-9404-aed674a8615a": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 510,
-                    "y": 220
-                },
-                "z": 3,
-                "parent": "5198eb6d-da4f-43e2-8a4b-b9bff02b26a2",
-                "embeds": [],
-                "dependson": [
-                    "0a162613-8f2e-4864-be99-75d946934a4a"
-                ]
-            },
-            "40c2d4e7-f01a-45b2-8878-a06680aa2216": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 430,
-                    "y": 140
-                },
-                "z": 3,
-                "parent": "5198eb6d-da4f-43e2-8a4b-b9bff02b26a2",
-                "embeds": [],
-                "iscontainedinside": [
-                    "5198eb6d-da4f-43e2-8a4b-b9bff02b26a2"
-                ],
-                "dependson": [
-                    "4731d93c-f3fc-420a-b535-f0b99840f356",
-                    "9d4cbbc2-f521-436d-bb4a-85b82cf22a2a",
-                    "99fce86e-18b8-4b1b-a572-7bef3c5cece7",
-                    "58a1ab6f-49ac-4ffa-93c7-3f708bf65871",
-                    "ec256f27-66c3-423c-9d98-b9f0f634e7b8"
-                ]
-            },
-            "9d4cbbc2-f521-436d-bb4a-85b82cf22a2a": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 350,
-                    "y": 140
-                },
-                "z": 3,
-                "parent": "5198eb6d-da4f-43e2-8a4b-b9bff02b26a2",
-                "embeds": []
-            },
-            "ec256f27-66c3-423c-9d98-b9f0f634e7b8": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 430,
-                    "y": 220
-                },
-                "z": 3,
-                "parent": "5198eb6d-da4f-43e2-8a4b-b9bff02b26a2",
-                "embeds": [],
-                "iscontainedinside": [
-                    "0a162613-8f2e-4864-be99-75d946934a4a"
-                ]
-            },
-            "5bb16646-dc1e-4661-9164-6ecc6848dc83": {
-                "source": {
-                    "id": "4731d93c-f3fc-420a-b535-f0b99840f356"
-                },
-                "target": {
-                    "id": "5198eb6d-da4f-43e2-8a4b-b9bff02b26a2"
-                },
-                "z": 3
-            },
-            "99fce86e-18b8-4b1b-a572-7bef3c5cece7": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 150,
-                    "y": 250
-                },
-                "z": 1,
-                "embeds": []
-            },
-            "58a1ab6f-49ac-4ffa-93c7-3f708bf65871": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 150,
-                    "y": 170
-                },
-                "z": 1,
-                "embeds": []
-            },
-            "d3fab7a7-d694-435e-930d-ff7693dffbbc": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 110,
-                    "y": 90
-                },
-                "z": 1,
-                "embeds": []
-            },
-            "2c5cc5a9-5a17-4d54-80ea-56e204c9c1a1": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 70,
-                    "y": 170
-                },
-                "z": 1,
-                "embeds": []
-            },
-            "e81dfbbc-e8ee-4f4b-adb0-b314056ab0b3": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 70,
-                    "y": 250
-                },
-                "z": 1,
-                "embeds": []
-            },
-            "9d3d19ab-d561-4f59-89de-73498eeeebda": {
-                "source": {
-                    "id": "0a162613-8f2e-4864-be99-75d946934a4a"
-                },
-                "target": {
-                    "id": "464ea4ae-199c-4917-9404-aed674a8615a"
-                },
-                "z": 3
-            },
-            "361e0035-6c5a-48df-8339-3e31f19bf032": {
-                "source": {
-                    "id": "9d4cbbc2-f521-436d-bb4a-85b82cf22a2a"
-                },
-                "target": {
-                    "id": "40c2d4e7-f01a-45b2-8878-a06680aa2216"
-                },
-                "z": 3
+                "HelperInstallationCommands": "export PATH=\"$PATH:/opt/aws/bin\""
             }
         }
     },
     "Resources": {
+        "IAMInstanceProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "InstanceProfileName": {
+                    "Ref": "KeyPair"
+                },
+                "Path": "/setup-ipsec-vpn/",
+                "Roles": [
+                    {
+                        "Ref": "S3ExecutionRole"
+                    }
+                ]
+            },
+            "DependsOn": [
+                "S3ExecutionRole",
+                "KeyPair"
+            ]
+        },
+        "Ikev2S3Bucket": {
+            "Type": "AWS::S3::Bucket",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+                "PublicAccessBlockConfiguration": {
+                    "BlockPublicAcls": false,
+                    "BlockPublicPolicy": false,
+                    "IgnorePublicAcls": false,
+                    "RestrictPublicBuckets": false
+                },
+                "LifecycleConfiguration": {
+                    "Rules": [
+                        {
+                            "Id": "DeletionAfterOneDay",
+                            "Status": "Enabled",
+                            "ExpirationInDays": 1
+                        }
+                    ]
+                },
+                "BucketName": {
+                    "Fn::GetAtt": [
+                        "KeyPairDisplayFunctionInfo",
+                        "Combination"
+                    ]
+                }
+            },
+            "Metadata": {},
+            "DependsOn": [
+                "KeyPair"
+            ]
+        },
+        "OpenBucketPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+                "Bucket": {
+                    "Ref": "Ikev2S3Bucket"
+                },
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": "*",
+                            "Action": "s3:GetObject",
+                            "Resource": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        "arn:aws:s3:::",
+                                        {
+                                            "Ref": "Ikev2S3Bucket"
+                                        },
+                                        "/*"
+                                    ]
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        },
         "VpnVpc": {
             "Type": "AWS::EC2::VPC",
             "Properties": {
                 "CidrBlock": "10.0.0.0/24"
             },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "0a162613-8f2e-4864-be99-75d946934a4a"
-                }
-            }
+            "Metadata": {}
         },
         "VpnSubnet": {
             "Type": "AWS::EC2::Subnet",
@@ -289,11 +148,7 @@
                     ]
                 }
             },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "5198eb6d-da4f-43e2-8a4b-b9bff02b26a2"
-                }
-            },
+            "Metadata": {},
             "DependsOn": [
                 "VpnVpc",
                 "VpcInternetGateway"
@@ -306,11 +161,7 @@
                     "Ref": "VpnVpc"
                 }
             },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "4731d93c-f3fc-420a-b535-f0b99840f356"
-                }
-            },
+            "Metadata": {},
             "DependsOn": [
                 "VpnSubnet"
             ]
@@ -326,11 +177,7 @@
                     "Ref": "VpcInternetGateway"
                 }
             },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "5262ea47-2337-4be8-a4d1-1f0af38a1731"
-                }
-            },
+            "Metadata": {},
             "DependsOn": [
                 "VpnRouteTable",
                 "VpcInternetGateway",
@@ -345,24 +192,17 @@
                 }
             },
             "Properties": {
+                "IamInstanceProfile": {
+                    "Ref": "IAMInstanceProfile"
+                },
                 "UserData": {
                     "Fn::Base64": {
                         "Fn::Join": [
-                            "",
+                            "\n",
                             [
-                                "#!/bin/bash -xe\n",
-                                "trap 'cfn-signal -e 1 ",
-                                " --stack ",
-                                {
-                                    "Ref": "AWS::StackName"
-                                },
-                                " --resource VpnInstance ",
-                                " --region ",
-                                {
-                                    "Ref": "AWS::Region"
-                                },
-                                "' ERR\n",
-                                "sleep 60\n",
+                                "#!/bin/bash -xe",
+                                { "Fn::Sub": "trap 'cfn-signal -e 1 --resource VpnInstance --stack ${AWS::StackName} --region ${AWS::Region}' ERR" },
+                                "sleep 60",
                                 {
                                     "Fn::FindInMap": [
                                         "OS",
@@ -372,34 +212,16 @@
                                         "HelperInstallationCommands"
                                     ]
                                 },
-                                "export VPN_IPSEC_PSK='",
-                                {
-                                    "Ref": "VpnIpsecPsk"
-                                },
-                                "'\n",
-                                "export VPN_USER='",
-                                {
-                                    "Ref": "VpnUser"
-                                },
-                                "'\n",
-                                "export VPN_PASSWORD='",
-                                {
-                                    "Ref": "VpnPassword"
-                                },
-                                "'\n",
-                                "wget -t 3 -T 30 -nv -O vpn.sh https://git.io/vpnsetup\n",
-                                "sh vpn.sh\n",
-                                "cfn-signal -e 0 ",
-                                " --stack ",
-                                {
-                                    "Ref": "AWS::StackName"
-                                },
-                                " --resource VpnInstance ",
-                                " --region ",
-                                {
-                                    "Ref": "AWS::Region"
-                                },
-                                "\n"
+                                { "Fn::Sub": "export VPN_IPSEC_PSK='${VpnIpsecPsk}'" },
+                                { "Fn::Sub": "export VPN_USER='${VpnUser}'" },
+                                { "Fn::Sub": "export VPN_PASSWORD='${VpnPassword}'" },
+                                "wget -t 3 -T 30 -nv -O vpn.sh https://github.com/hwdsl2/setup-ipsec-vpn/raw/master/vpnsetup.sh",
+                                "sh vpn.sh",
+                                "mkdir /root/profiles",
+                                "cp /root/vpnclient* /root/profiles",
+                                { "Fn::Sub": "cd /root/ && zip -er --password '${VpnPassword}' profiles.zip ./profiles" },
+                                { "Fn::Sub": "aws s3 cp /root/profiles.zip s3://${Ikev2S3Bucket}/" },
+                                { "Fn::Sub": "cfn-signal -e 0 --stack ${AWS::StackName} --resource VpnInstance --region ${AWS::Region}" }
                             ]
                         ]
                     }
@@ -427,10 +249,7 @@
                     "Ref": "InstanceType"
                 },
                 "KeyName": {
-                    "Fn::GetAtt": [
-                        "KeyPairInfo",
-                        "KeyName"
-                    ]
+                    "Ref": "KeyPair"
                 },
                 "ImageId": {
                     "Fn::GetAtt": [
@@ -439,18 +258,31 @@
                     ]
                 }
             },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "40c2d4e7-f01a-45b2-8878-a06680aa2216"
-                }
-            },
+            "Metadata": {},
             "DependsOn": [
                 "VpnRouteTable",
-                "VpnServerVolume",
-                "KeyPairCreation",
+                "KeyPair",
                 "AMIInfoFunction",
-                "VpnSecurityGroup"
+                "VpnSecurityGroup",
+                "Ikev2S3Bucket",
+                "IAMInstanceProfile"
             ]
+        },
+        "KeyPair": {
+            "Type": "AWS::EC2::KeyPair",
+            "Properties": {
+                "KeyName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            "setup-ipsec-vpn",
+                            {
+                                "Ref": "AWS::StackName"
+                            }
+                        ]
+                    ]
+                }
+            }
         },
         "VpnSecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
@@ -487,44 +319,17 @@
                     }
                 ]
             },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "ec256f27-66c3-423c-9d98-b9f0f634e7b8"
-                }
-            }
-        },
-        "VpnServerVolume": {
-            "Type": "AWS::EC2::Volume",
-            "Properties": {
-                "AvailabilityZone": {
-                    "Fn::Select": [
-                        "0",
-                        {
-                            "Fn::GetAZs": ""
-                        }
-                    ]
-                },
-                "Size": 8
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "9d4cbbc2-f521-436d-bb4a-85b82cf22a2a"
-                }
-            }
+            "Metadata": {}
         },
         "VpcInternetGateway": {
             "Type": "AWS::EC2::InternetGateway",
             "Properties": {},
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "464ea4ae-199c-4917-9404-aed674a8615a"
-                }
-            },
+            "Metadata": {},
             "DependsOn": [
                 "VpnVpc"
             ]
         },
-        "EC2SRTA4VJU5": {
+        "SubnetRouteTableAssociation": {
             "Type": "AWS::EC2::SubnetRouteTableAssociation",
             "Properties": {
                 "RouteTableId": {
@@ -534,24 +339,19 @@
                     "Ref": "VpnSubnet"
                 }
             },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "5bb16646-dc1e-4661-9164-6ecc6848dc83"
-                }
-            }
+            "Metadata": {}
         },
-        "KeyPairCreation": {
+        "KeyPairDisplayFunction": {
             "Type": "AWS::Lambda::Function",
             "Properties": {
                 "Handler": "index.handler",
-                "Runtime": "python3.7",
+                "Runtime": "python3.12",
                 "Role": {
                     "Fn::GetAtt": [
                         "LambdaExecutionRole",
                         "Arn"
                     ]
                 },
-                "Timeout": 30,
                 "Code": {
                     "ZipFile": {
                         "Fn::Join": [
@@ -561,34 +361,72 @@
                                 "import cfnresponse",
                                 "import string",
                                 "import random",
+                                "import traceback",
                                 "'''",
                                 "This python program should be embedded into its designated cloudformation",
                                 "template as the inline code of one of the lambda functions.",
+                                "Its function is to create a random combination of 20 characters for the naming of the Ikev2S3Bucket, and",
+                                "to retrieve the private key material for display under the Outputs tab.",
                                 "'''",
                                 "def handler(event, context):",
                                 "   try:",
-                                "       keyName = 'setup-ipsec-vpn-' + ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(10))",
-                                "       region = event['ResourceProperties']['Region']",
-                                "       ec2 = boto3.client('ec2',region)",
-                                "       response = ec2.create_key_pair(",
-                                "           KeyName=keyName",
-                                "       )",
-                                "       keyMaterial = response['KeyMaterial']",
-                                "       cfnresponse.send(event, context, cfnresponse.SUCCESS, {'KeyMaterial':keyMaterial, 'KeyName':keyName}, 'KeyPairInfo')",
-                                "   except Exception:",
-                                "       cfnresponse.send(event, context, cfnresponse.FAILED, {})"
+                                "       if event['RequestType'] == 'Delete':",
+                                "           cfnresponse.send(event, context, cfnresponse.SUCCESS, {})",
+                                "       elif event['RequestType'] == 'Create':",
+                                "           rCombination = 'setup-ipsec-vpn-' + ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(20)).lower()",
+                                "           region = event['ResourceProperties']['Region']",
+                                "           ssm = boto3.client('ssm',region)",
+                                "           response = ssm.get_parameter(",
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "               Name='/ec2/keypair/",
+                                            {
+                                                "Fn::GetAtt": [
+                                                    "KeyPair",
+                                                    "KeyPairId"
+                                                ]
+                                            },
+                                            "',"
+                                        ]
+                                    ]
+                                },
+                                "               WithDecryption=True",
+                                "           )",
+                                "           keyMaterial = response['Parameter']['Value']",
+                                "           cfnresponse.send(event, context, cfnresponse.SUCCESS, {'KeyMaterial':keyMaterial, 'Combination':rCombination}, 'KeyPairDisplayFunctionInfo')",
+                                "   except Exception as e:",
+                                "       cfnresponse.send(event, context, cfnresponse.FAILED, {'ErrorMsg':traceback.format_exc()})"
                             ]
                         ]
                     }
-                }
+                },
+                "Timeout": 30
             },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "99fce86e-18b8-4b1b-a572-7bef3c5cece7"
-                }
-            },
+            "Metadata": {},
             "DependsOn": [
-                "LambdaExecutionRole"
+                "LambdaExecutionRole",
+                "KeyPair"
+            ]
+        },
+        "KeyPairDisplayFunctionInfo": {
+            "Type": "Custom::KeyPairDisplayFunctionInfo",
+            "Properties": {
+                "Region": {
+                    "Ref": "AWS::Region"
+                },
+                "ServiceToken": {
+                    "Fn::GetAtt": [
+                        "KeyPairDisplayFunction",
+                        "Arn"
+                    ]
+                }
+            },
+            "Metadata": {},
+            "DependsOn": [
+                "KeyPairDisplayFunction",
+                "KeyPair"
             ]
         },
         "AMIInfo": {
@@ -607,11 +445,7 @@
                     "Ref": "OS"
                 }
             },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "2c5cc5a9-5a17-4d54-80ea-56e204c9c1a1"
-                }
-            },
+            "Metadata": {},
             "DependsOn": [
                 "AMIInfoFunction"
             ]
@@ -620,7 +454,7 @@
             "Type": "AWS::Lambda::Function",
             "Properties": {
                 "Handler": "index.handler",
-                "Runtime": "python3.7",
+                "Runtime": "python3.12",
                 "Role": {
                     "Fn::GetAtt": [
                         "LambdaExecutionRole",
@@ -634,6 +468,7 @@
                             [
                                 "import boto3",
                                 "import cfnresponse",
+                                "import traceback",
                                 "'''",
                                 "This python script should be embeded into its designated cloudformation template.",
                                 "Its function is to sort out the correct AMI image to use for each of the distribution options available.",
@@ -647,31 +482,27 @@
                                 "       distribution = event['ResourceProperties']['Distribution']",
                                 "       ec2 = boto3.client('ec2',regionName)",
                                 "       AMIName = {",
-                                "           'Ubuntu1804': 'ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-*',",
                                 "           'Ubuntu2004': 'ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*',",
-                                "           'Debian9': 'debian-stretch-hvm-x86_64-gp2-*',",
-                                "           'CentOS7': 'CentOS 7.9.2009 x86_64',",
-                                "           'CentOS8': 'CentOS 8.3.2011 x86_64',",
+                                "           'Ubuntu2204': 'ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*',",
+                                "           'Ubuntu2404': 'ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*',",
+                                "           'Debian11': 'debian-11-amd64-*',",
+                                "           'Debian12': 'debian-12-amd64-*',",
                                 "           'AmazonLinux2': 'amzn2-ami-hvm-*.*-x86_64-gp2',",
                                 "       }[distribution]",
-                                "       response = ec2.describe_images(Filters=[{'Name':'name', 'Values':[AMIName]}], Owners=['099720109477', '379101102735', '125523088429', 'amazon'])",
+                                "       response = ec2.describe_images(Filters=[{'Name':'name', 'Values':[AMIName]}], Owners=['099720109477', '136693071363', 'amazon'])",
                                 "       images = response['Images']",
                                 "       images.sort(key=creation_date,reverse=True)",
                                 "       AMIId = images[0]['ImageId']",
                                 "       cfnresponse.send(event, context, cfnresponse.SUCCESS, {'AMIId':AMIId}, 'AMIInfo')",
                                 "   except Exception:",
-                                "       cfnresponse.send(event, context, cfnresponse.FAILED, {})"
+                                "       cfnresponse.send(event, context, cfnresponse.FAILED, {'ErrorMsg':traceback.format_exc()})"
                             ]
                         ]
                     }
                 },
                 "Timeout": 30
             },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "58a1ab6f-49ac-4ffa-93c7-3f708bf65871"
-                }
-            },
+            "Metadata": {},
             "DependsOn": [
                 "LambdaExecutionRole"
             ]
@@ -686,17 +517,6 @@
                             "Effect": "Allow",
                             "Principal": {
                                 "Service": "lambda.amazonaws.com"
-                            },
-                            "Action": [
-                                "sts:AssumeRole"
-                            ]
-                        },
-                        {
-                            "Effect": "Allow",
-                            "Principal": {
-                                "Service": [
-                                    "ec2.amazonaws.com"
-                                ]
                             },
                             "Action": [
                                 "sts:AssumeRole"
@@ -721,33 +541,60 @@
                     }
                 ]
             },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "d3fab7a7-d694-435e-930d-ff7693dffbbc"
-                }
-            }
+            "Metadata": {}
         },
-        "KeyPairInfo": {
-            "Type": "Custom::KeyPairInfo",
+        "S3ExecutionRole": {
+            "Type": "AWS::IAM::Role",
             "Properties": {
-                "Region": {
-                    "Ref": "AWS::Region"
-                },
-                "ServiceToken": {
-                    "Fn::GetAtt": [
-                        "KeyPairCreation",
-                        "Arn"
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ec2.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
                     ]
-                }
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "s3-bucket-specific-policy",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": "s3:PutObject",
+                                    "Resource": [
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    {
+                                                        "Fn::GetAtt": [
+                                                            "Ikev2S3Bucket",
+                                                            "Arn"
+                                                        ]
+                                                    },
+                                                    "/*"
+                                                ]
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
             },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "e81dfbbc-e8ee-4f4b-adb0-b314056ab0b3"
-                }
-            },
-            "DependsOn": [
-                "KeyPairCreation"
-            ]
+            "Metadata": {}
         },
         "InternetGatewayAttachment": {
             "Type": "AWS::EC2::VPCGatewayAttachment",
@@ -759,28 +606,7 @@
                     "Ref": "VpnVpc"
                 }
             },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "9d3d19ab-d561-4f59-89de-73498eeeebda"
-                }
-            }
-        },
-        "EC2VA41EUF": {
-            "Type": "AWS::EC2::VolumeAttachment",
-            "Properties": {
-                "Device": "/dev/sdh",
-                "VolumeId": {
-                    "Ref": "VpnServerVolume"
-                },
-                "InstanceId": {
-                    "Ref": "VpnInstance"
-                }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "361e0035-6c5a-48df-8339-3e31f19bf032"
-                }
-            }
+            "Metadata": {}
         }
     },
     "Parameters": {
@@ -798,20 +624,20 @@
         },
         "OS": {
             "Type": "String",
-            "Description": "The OS of your VPN server. Default: Ubuntu 20.04",
-            "Default": "Ubuntu2004",
+            "Description": "The OS of your VPN server. Default: Ubuntu 22.04",
+            "Default": "Ubuntu2204",
             "AllowedValues": [
+                "Ubuntu2404",
+                "Ubuntu2204",
                 "Ubuntu2004",
-                "Ubuntu1804",
-                "Debian9",
-                "CentOS7",
-                "CentOS8",
+                "Debian12",
+                "Debian11",
                 "AmazonLinux2"
             ]
         },
         "InstanceType": {
             "Type": "String",
-            "Description": "The instance type of your VPN server. Using t2.micro may qualify for the AWS Free Tier.",
+            "Description": "The instance type of your VPN server. Using t2.micro or t3.micro may qualify for the AWS Free Tier.",
             "AllowedValues": [
                 "t2.micro",
                 "t3.nano",
@@ -830,7 +656,7 @@
         }
     },
     "Outputs": {
-        "VPNAddress": {
+        "1VPNAddress": {
             "Description": "This is the public IP of your newly-launched VPN server.",
             "Value": {
                 "Fn::GetAtt": [
@@ -839,36 +665,67 @@
                 ]
             }
         },
-        "VPNUsername": {
+        "2VPNUsername": {
             "Description": "Your VPN username",
             "Value": {
                 "Ref": "VpnUser"
             }
         },
-        "VPNPassword": {
+        "3VPNPassword": {
             "Description": "Your VPN password",
             "Value": {
                 "Ref": "VpnPassword"
             }
         },
-        "VPNKey": {
+        "4VPNKey": {
             "Description": "Your VPN IPsec PSK (pre-shared key)",
             "Value": {
                 "Ref": "VpnIpsecPsk"
             }
         },
-        "EC2PrivateKeyMaterial": {
+        "5EC2PrivateKeyId": {
+            "Description": "The ID of the key pair created. For more information regarding how to retrieve the private key for authentication, please refer to: https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/aws/README.md#faqs",
+            "Value": {
+                "Fn::GetAtt": [
+                    "KeyPair",
+                    "KeyPairId"
+                ]
+            }
+        },
+        "6EC2PrivateKeyMaterial": {
             "Description": "The content of your private key for accessing the VPN server via SSH. Save it as a file for use when connecting.",
             "Value": {
                 "Fn::GetAtt": [
-                    "KeyPairInfo",
+                    "KeyPairDisplayFunctionInfo",
                     "KeyMaterial"
                 ]
             }
         },
-        "NextStep": {
+        "7NextStep": {
             "Description": "Learn how to configure VPN clients.",
             "Value": "https://github.com/hwdsl2/setup-ipsec-vpn#next-steps"
+        },
+        "8WarningForDebianUsers": {
+            "Description": "Please be noted that due to Debian images on AWS EC2 using cloud kernels, you are unable to use IPSec/L2TP mode if your server is running Debian. For more information, please refer to the link to the left.",
+            "Value": "https://github.com/hwdsl2/setup-ipsec-vpn/blob/master/docs/clients.md#debian-kernel"
+        },
+        "9RetrieveYourIkev2Credentials": {
+            "Description": "Please use the following link to download your IKEv2 connection credentials. The password to the ZIP file that stores the credentials, is the same password used to connect to your VPN server. The download link for the credentials will expire in ONE day.",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        "https://",
+                        {
+                            "Fn::GetAtt": [
+                                "Ikev2S3Bucket",
+                                "RegionalDomainName"
+                            ]
+                        },
+                        "/profiles.zip"
+                    ]
+                ]
+            }
         }
     }
 }
